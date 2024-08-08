@@ -1,51 +1,37 @@
-import "dotenv/config";
-import express, {Express, json, Request, Response, NextFunction } from "express";
-import http from "http";
+import 'dotenv/config';
+import { Db, MongoClient } from 'mongodb';
 
 
-const app: Express = express();
+const dropUsers = (db: Db) => db.dropCollection("users")
 
-app.use(json())
+const dropMessages = (db: Db) => db.dropCollection("messages")
+
+const dropChat = (db: Db) => db.dropCollection("chats");
+
+const dropEvents = (db: Db) => db.dropCollection("events");
 
 
-app.get('/hello', (req: Request, res: Response, next: NextFunction) => res.send('HELLO WORLD!!!'));
+const seedDb = async  (client : MongoClient) => {
+	console.log("INITIATING DB SEEDING...");
 
-const server = http.createServer(app);
+	const db = client.db();
 
-const onError = (error:any) =>  {
-    
-	if (error.syscall !== "listen") {
-		throw error;
-	}
+	console.log("CLEARING DB...");
 
-	switch (error.code) {
-		case "EACCES":
-			process.exit(1);
-			break;
-		case "EADDRINUSE":
-			process.exit(1);
-			break;
-		default:
-			throw error;
+	try {
+		await dropChat(db);
+		await dropUsers(db);
+		await dropMessages(db);
+		await dropEvents(db);
+
+
+	} catch (error) {
+		console.log(error)
 	}
 }
 
+const client: MongoClient = new MongoClient(process.env.MONGODB_CONNECTION_URI!);
 
-const onListening = () => {
-	const addr = server.address();
-	const bind = typeof addr === "string" ? `pipe ${addr}` : `port ${addr?.port}`;
-	console.log(`Listening on ${bind}`);
-    console.log(process.env.DB_CONNECTION)
-}
+seedDb(client);
 
-const port = 3000
-
-
-server.listen(port, () => {
-	console.log(`listening at http://localhost:${port}`);
-});
-
-server.on("error", onError);
-server.on("listening", onListening);
-
-export default app;
+process.exit();
